@@ -12,20 +12,30 @@ import experiment
 
 #------------------------ hyperparameters and dataset #------------------------
 
-pretrained_enc_type = 'fasttext'
 batch_size = 64
 my_seeds = [0]
 num_folds = 5
+pretrained_enc_type = 'fasttext'
 enc_type = 'embed-and-pool'    #'lstm'
 device='cpu' #'gpu'
 pretrained_emb_model = utils.load_pretrained_embeddings(pretrained_enc_type)
-tokenizer = clslib.BasicTokenizer(      # this is for BoW
-    lowercase=True, 
-    remove_punct=True, 
-    remove_stopwords=True, 
-    language='english',
-    vocab=pretrained_emb_model.vocab
+
+if enc_type == 'lstm':
+    tokenizer = clslib.BasicTokenizer(
+        lowercase=True, 
+        remove_punct=False,
+        remove_stopwords=False, 
+        language='english',
+        vocab=pretrained_emb_model.vocab
 )
+elif enc_type == 'embed-and-pool':
+    tokenizer = clslib.BasicTokenizer(
+        lowercase=True, 
+        remove_punct=True, 
+        remove_stopwords=True, 
+        language='english',
+        vocab=pretrained_emb_model.vocab
+    )
 my_classifiers = OrderedDict()
 save_to="results/softreg-" + enc_type + "-" + pretrained_enc_type
 
