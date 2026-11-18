@@ -12,7 +12,7 @@ from pathlib import Path
 import itertools
 import json
 
-from . import clslib
+import clslib
 
 
 class LabelledCorpus(Dataset):
