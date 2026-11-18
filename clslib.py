@@ -7,7 +7,6 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_sequence 
 import time
 from tqdm.auto import tqdm
-
 from zipfile import ZipFile
 from io import TextIOWrapper
 from pathlib import Path
@@ -398,20 +397,15 @@ class SoftmaxRegressor(nn.Module):
     This is a softmax regressor, 
      it works with encoded text h(x) as input.
     The map from h(x) to outputs uses an MLP.
-
-    One important detail: for numerical stability the output is not softmax-activitate, 
-     rather, it is logsoftmax-activated. This means the outputs are log prob masses, not prob masses.
     """
-    def __init__(self, hidden_size1, hidden_size2, num_classes, encoder: nn.Module, dropout=0.):
+    def __init__(self, hidden_size1, hidden_size2, encoder: nn.Module, dropout=0.):
         """
         hidden_size1: size of first hidden layer (in the output transformation)
         hidden_size2: size of second hidden layer
-        num_classes: number of possible classes
         encoder: an nn.Module that maps each x to a single vector of size encoder.enc_dim
         """
         super().__init__()
         self.encoder = encoder      
-        self.num_classes = num_classes
         self.dropout_rate = dropout
         self.output_layer = nn.Sequential(
             nn.Dropout(p=dropout), # dropout is a regularisation technique (whereby at some rate, we drop/0-out inputs to a linear layer)
@@ -421,13 +415,11 @@ class SoftmaxRegressor(nn.Module):
             nn.Linear(hidden_size1, hidden_size2),
             nn.Tanh(),
             nn.Dropout(p=dropout),
-            nn.Linear(hidden_size2, num_classes),
-            nn.LogSoftmax(dim=-1) # for numerical stability, it is common to use log softmax, rather than softmax
+            nn.Linear(hidden_size2, 1),
         )
 
     def forward(self, x):  
         # [..., enc_dim]
         h = self.encoder(x)
         # [...,num_classes]
-        logprobs = self.output_layer(h)
-        return logprobs            
+        return self.output_layer(h)          
