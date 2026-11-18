@@ -31,8 +31,8 @@ if enc_type == 'lstm':
 elif enc_type == 'embed-and-pool':
     tokenizer = clslib.BasicTokenizer(
         lowercase=True, 
-        remove_punct=True, 
-        remove_stopwords=True, 
+        remove_punct=False, 
+        remove_stopwords=False, 
         language='english',
         vocab=pretrained_emb_model.vocab
     )
