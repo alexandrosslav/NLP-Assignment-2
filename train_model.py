@@ -8,28 +8,40 @@ import experiment
 
 #------------------------ hyperparameters and dataset #------------------------
 
-pretrained_enc_type = 'fasttext'
 hidden_size1 = 50
 hidden_size2 = 50
 dropout = 0.1
 learning_rate = 1e-3
 weight_decay = 1e-4
 batch_size = 64
-num_epochs = 20
+num_epochs = 10
 my_seeds = [0]
 num_folds = 5
 my_cross_validation_sets = []
-enc_kwargs={'freeze_embeddings': True}
+pretrained_enc_type = 'fasttext'
+freeze_embeddings = True
 enc_type = 'embed-and-pool'    #'lstm'
 device='cpu' #'gpu'
 pretrained_emb_model = utils.load_pretrained_embeddings(pretrained_enc_type)
-tokenizer = clslib.BasicTokenizer(      # this is for BoW
-    lowercase=True, 
-    remove_punct=True, 
-    remove_stopwords=True, 
-    language='english',
-    vocab=pretrained_emb_model.vocab
+
+if enc_type == 'lstm':
+    enc_kwargs={'freeze_embeddings': True, 'hidden_size': 256, 'word_dropout': 0.1}
+    tokenizer = clslib.BasicTokenizer(
+        lowercase=True, 
+        remove_punct=False,
+        remove_stopwords=False, 
+        language='english',
+        vocab=pretrained_emb_model.vocab
 )
+elif enc_type == 'embed-and-pool':
+    enc_kwargs={'freeze_embeddings': freeze_embeddings}
+    tokenizer = clslib.BasicTokenizer(
+        lowercase=True, 
+        remove_punct=True, 
+        remove_stopwords=True, 
+        language='english',
+        vocab=pretrained_emb_model.vocab
+    )
 my_classifiers = OrderedDict()
 save_to="results/softreg-" + enc_type + "-" + pretrained_enc_type
 
@@ -50,9 +62,9 @@ for seed in my_seeds:
         )
     )
 
-my_classifiers['embed-and-pool'] = []
+my_classifiers[enc_type] = []
 for run, seed in enumerate(my_seeds): 
-    my_classifiers['embed-and-pool'].append(
+    my_classifiers[enc_type].append(
         experiment.cross_validation(
             data_splits=my_cross_validation_sets[run],
             tokenizer=tokenizer,
