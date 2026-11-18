@@ -11,6 +11,7 @@ from collections import defaultdict, OrderedDict
 from pathlib import Path
 import itertools
 import json
+import random
 
 import clslib
 
@@ -27,6 +28,39 @@ class LabelledCorpus(Dataset):
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
 
+
+def cross_validation_split(pairs, k, seed=0):
+    """
+    Shuffles a list of labelled texts and splits the result into k folds.
+    
+    pairs: lists of tuples (text, label)
+    k: number of folds
+    seed: for reproducible shuffling
+    """
+    
+    # Shuffle the pairs
+    random.seed(seed)
+    pairs = list(pairs)
+    ids = list(range(len(pairs)))
+    random.shuffle(ids)
+
+    # Split without coercing (text, int) tuples into a string array
+    ids_parts = np.array_split(np.array(ids, dtype=object), k)
+    
+    # Create a dictionary to store the training and validation sets for each fold
+    cross_validation_sets = {}
+    for i in range(k):
+        validation_set = [pairs[j] for j in ids_parts[i]] 
+        training_ids = list(itertools.chain.from_iterable(part for k, part in enumerate(ids_parts) if k != i))
+        training_set = [pairs[j] for j in training_ids]
+        cross_validation_sets[i] = {
+            "training": training_set, 
+            "validation": validation_set, 
+            'training_ids': training_ids,   # these are not often needed, but we return it just in case
+            'validation_ids': ids_parts[i]  # these are not often needed, but we return it just in case
+        }
+
+    return cross_validation_sets
 
 def collate_labelled_texts(batched_pairs, padding_value=0):
     X_rows, y_rows = zip(*batched_pairs)    
@@ -50,13 +84,13 @@ def training_one_epoch(model, dataloader, optimizer, criterion, device="cpu"):
         y_batch = y_batch.to(device)
 
         optimizer.zero_grad()
-        logprobs = model(X_batch)
-        loss = criterion(logprobs, y_batch)
+        output = model(X_batch)
+        loss = criterion(output, y_batch.unsqueeze(1).float()) # compute the loss
         loss.backward()
         optimizer.step()
 
         total_loss += loss.item() * y_batch.size(0)
-        predictions = logprobs.argmax(dim=1)
+        predictions = (output >= 0).long().squeeze(1) # get the predicted class
         total_correct += (predictions == y_batch).sum().item()
         total_examples += y_batch.size(0)
 
@@ -82,11 +116,11 @@ def evaluate(model, dataloader, criterion, device="cpu"):
             X_batch = X_batch.to(device)
             y_batch = y_batch.to(device)
 
-            logprobs = model(X_batch)
-            loss = criterion(logprobs, y_batch)
+            output = model(X_batch)
+            loss = criterion(output, y_batch.unsqueeze(1).float())
 
             total_loss += loss.item() * y_batch.size(0)
-            predictions = logprobs.argmax(dim=1)
+            predictions = (output >= 0).long().squeeze(1) # get the predicted class
             total_correct += (predictions == y_batch).sum().item()
             total_examples += y_batch.size(0)
             preds_list.append(predictions.tolist())
@@ -104,7 +138,6 @@ def train(
     validation_set, 
     tokenizer: clslib.Tokenizer,    
     emb_model: clslib.PretrainedEmbeddings,
-    num_classes: int,    
     enc_type: str,
     save_to="temp",    
     enc_kwargs={'freeze_embeddings': True},
@@ -155,7 +188,6 @@ def train(
 
     # save architecture-defining arguments
     enc_kwargs['padding_idx'] = pad_id
-    regressor_kwargs['num_classes'] = num_classes    
     args = {        
         'enc_kwargs': enc_kwargs,
         'regressor_kwargs': regressor_kwargs,
@@ -182,7 +214,7 @@ def train(
         **regressor_kwargs
     ).to(device)
     
-    criterion = nn.NLLLoss()
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=opt_kwargs['learning_rate'], weight_decay=opt_kwargs['weight_decay'])
 
     metrics = []
@@ -253,7 +285,6 @@ def load(path, emb_model: clslib.PretrainedEmbeddings, device="cpu"):
     return model
 
 def cross_validation(
-    outcome_space,
     data_splits, 
     tokenizer: clslib.Tokenizer, 
     emb_model: clslib.PretrainedEmbeddings, 
@@ -292,7 +323,6 @@ def cross_validation(
             validation_set, 
             tokenizer,
             emb_model,
-            num_classes=len(outcome_space),            
             enc_type=enc_type,
             enc_kwargs=enc_kwargs,
             regressor_kwargs=regressor_kwargs,
@@ -333,8 +363,6 @@ def predict_logprobs(
 
     model.eval()
 
-    preds_list = []
-    labels_list = []
     logprobs_list = []
     with torch.no_grad():
         for x_batch, y_batch in dl:
