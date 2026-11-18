@@ -1,5 +1,9 @@
 from pathlib import Path
 import urllib.request
+import os
+import pickle
+
+import clslib
 
 def download_pretrained(option):
     """
@@ -35,3 +39,26 @@ def download_pretrained(option):
         
 
     return destination, dims, skip_first
+
+def load_pretrained_embeddings(pretrained_enc_type):
+    """
+    Load pre-trained embeddings. 
+    """
+    cache_pkl = f"{pretrained_enc_type}_pretrained_emb.pkl"
+
+    if pretrained_enc_type == 'fasttext':
+        if os.path.exists(cache_pkl):
+            with open(cache_pkl, "rb") as f:
+                pretrained_emb_model = pickle.load(f)
+        else:
+            emb_dest, embtable_dims, embtable_metadata = download_pretrained(pretrained_enc_type)
+            
+            pretrained_emb_model = clslib.PretrainedEmbeddings(
+                emb_dest, embtable_dims, skip_first_line=embtable_metadata
+            )
+            with open(cache_pkl, "wb") as f:
+                pickle.dump(pretrained_emb_model, f)
+        print(f"Loaded pretrained embeddings: {pretrained_enc_type}\n")
+    else:
+        raise ValueError(f"Unknown pretrained_enc_type: {pretrained_enc_type}")
+    return pretrained_emb_model
