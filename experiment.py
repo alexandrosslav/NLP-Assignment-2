@@ -336,7 +336,7 @@ def cross_validation(
 
     return {'models': models, 'predictions': predictions, 'accuracies': accuracies}    
 
-def predict_logprobs(   
+def predict_logit(   
     model: clslib.SoftmaxRegressor,    
     tokenizer: clslib.Tokenizer,        
     texts,     
@@ -363,13 +363,13 @@ def predict_logprobs(
 
     model.eval()
 
-    logprobs_list = []
+    outputs_list = []
     with torch.no_grad():
         for x_batch, y_batch in dl:
             x_batch = x_batch.to(device)
             y_batch = y_batch.to(device)
 
-            logprobs = model(x_batch)
-            logprobs_list.extend(logprobs.cpu().numpy())
+            outputs = model(x_batch)
+            outputs_list.extend(outputs.cpu().numpy())
     
-    return np.array(logprobs_list)
+    return np.array(outputs_list)
