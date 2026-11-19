@@ -29,7 +29,8 @@ def download_pretrained(option):
     if not Path(destination).is_file():
         if option == 'glove':
             # !wget https://nlp.stanford.edu/data/wordvecs/glove.2024.wikigiga.50d.zip
-            url = "https://nlp.stanford.edu/data/wordvecs/glove.2024.wikigiga.50d.zip"
+            # url = "https://nlp.stanford.edu/data/wordvecs/glove.2024.wikigiga.50d.zip" the link is broken as of now
+            url = "https://surfdrive.surf.nl/s/qYfZ6PiNrMLCwpS/download"
             urllib.request.urlretrieve(url, destination)
 
         elif option == 'fasttext':
@@ -46,7 +47,7 @@ def load_pretrained_embeddings(pretrained_enc_type):
     """
     cache_pkl = f"{pretrained_enc_type}_pretrained_emb.pkl"
 
-    if pretrained_enc_type == 'fasttext':
+    if pretrained_enc_type in ('fasttext', 'glove'):
         if os.path.exists(cache_pkl):
             with open(cache_pkl, "rb") as f:
                 pretrained_emb_model = pickle.load(f)
