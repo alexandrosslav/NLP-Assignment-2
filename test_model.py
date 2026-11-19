@@ -16,6 +16,7 @@ batch_size = 64
 my_seeds = [0]
 num_folds = 5
 pretrained_enc_type = 'fasttext'
+freeze_pretrained_embeddings = True
 regressor_type = 'mmlpreg'
 enc_type = 'embed-and-pool'    #'lstm'
 device='cpu' #'gpu'
@@ -37,9 +38,8 @@ elif enc_type == 'embed-and-pool':
         language='english',
         vocab=pretrained_emb_model.vocab
     )
-my_classifiers = OrderedDict()
-save_to="results/" + regressor_type + "-" + enc_type + "-" + pretrained_enc_type
 
+my_classifiers = OrderedDict()
 dataset = load_dataset("stanfordnlp/sst2")
 test_dataset = dataset["validation"]
 
@@ -51,6 +51,8 @@ table = []
 systems = dict()
 items = dict()
 model_family = f"{regressor_type}-{enc_type}-{pretrained_enc_type}"
+if not freeze_pretrained_embeddings:
+    model_family += "-unfrozen"
 
 for run, seed in enumerate(my_seeds):
     run_texts = [text for text in test_dataset["sentence"]]

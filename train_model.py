@@ -11,6 +11,8 @@ import experiment
 hidden_size1 = 50   # ignored if regressor_type is 'mmlp-regressor'
 hidden_size2 = 50   # ignored if regressor_type is 'mmlp-regressor'
 dropout = 0.1       # ignored if regressor_type is 'mmlp-regressor'
+lstm_hidden_size = 256
+lstm_word_dropout = 0.1
 learning_rate = 1e-3
 weight_decay = 1e-4
 batch_size = 64
@@ -21,7 +23,7 @@ my_cross_validation_sets = []
 pretrained_enc_type = 'fasttext'
 freeze_pretrained_embeddings = True
 regressor_type = 'softreg'    #'mmlpreg'
-enc_type = 'embed-and-pool'    #'lstm'
+enc_type = 'embed-and-pool' # 'lstm'
 device='cpu' #'gpu'
 pretrained_emb_model = utils.load_pretrained_embeddings(pretrained_enc_type)
 
@@ -31,7 +33,7 @@ elif regressor_type == 'mmlpreg':
     regressor_kwargs={'hidden_size1': 128, 'hidden_size2': 128, 'dropout': 0.1}
 
 if enc_type == 'lstm':
-    enc_kwargs={'freeze_embeddings': True, 'hidden_size': 256, 'word_dropout': 0.1}
+    enc_kwargs={'freeze_embeddings': freeze_pretrained_embeddings, 'hidden_size': lstm_hidden_size, 'word_dropout': lstm_word_dropout}
     tokenizer = clslib.BasicTokenizer(
         lowercase=True, 
         remove_punct=False,
@@ -48,9 +50,12 @@ elif enc_type == 'embed-and-pool':
         language='english',
         vocab=pretrained_emb_model.vocab
     )
-my_classifiers = OrderedDict()
-save_to="results/" + regressor_type + "-" + enc_type + "-" + pretrained_enc_type
 
+save_to="results/" + regressor_type + "-" + enc_type + "-" + pretrained_enc_type
+if not freeze_pretrained_embeddings:
+    save_to += "-unfrozen"
+
+my_classifiers = OrderedDict()
 dataset = load_dataset("stanfordnlp/sst2")
 train_dataset = dataset["train"]
 
