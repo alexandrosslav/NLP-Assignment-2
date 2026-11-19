@@ -12,6 +12,7 @@ from pathlib import Path
 import itertools
 import json
 import random
+import csv
 
 import clslib
 
@@ -324,6 +325,9 @@ def cross_validation(
     """
 
     models, predictions, accuracies = OrderedDict(), OrderedDict(), OrderedDict()
+
+    epoch_rows = []
+    cv_rows = []
     
     for fold in tqdm(data_splits.keys()):
         training_set = data_splits[fold]["training"]
@@ -348,6 +352,38 @@ def cross_validation(
         models[fold] = f'{fold_folder}/model'
         accuracies[fold] = metrics[best_epoch]['val_metrics']['accuracy'] 
         predictions[fold] = np.array(list(itertools.chain.from_iterable(metrics[best_epoch]['val_metrics']['predictions'])))
+
+        # Record metrics for every epoch
+        for epoch, m in enumerate(metrics, start=1):
+            epoch_rows.append({
+                "fold": fold,
+                "epoch": epoch,
+                "train_loss": m["train_metrics"]["loss"],
+                "train_accuracy": m["train_metrics"]["accuracy"],
+                "val_loss": m["val_metrics"]["loss"],
+                "val_accuracy": m["val_metrics"]["accuracy"],
+            })
+
+        # Record the selected checkpoint's CV results
+        cv_rows.append({
+            "fold": fold,
+            "best_epoch": best_epoch + 1,
+            "val_loss": metrics[best_epoch]["val_metrics"]["loss"],
+            "val_accuracy": accuracies[fold],
+        })
+
+
+    # Save experimental results
+    for filename, rows in [
+        ("epoch_metrics.csv", epoch_rows),
+        ("cv_results.csv", cv_rows),
+    ]:
+        with open(Path(save_to) / filename, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+            writer.writeheader()
+            writer.writerows(rows)
+
+    print(f"Mean CV accuracy: {np.mean(list(accuracies.values())):.4f}")
 
     return {'models': models, 'predictions': predictions, 'accuracies': accuracies}    
 
