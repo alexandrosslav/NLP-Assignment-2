@@ -20,10 +20,10 @@ num_epochs = 10
 my_seeds = [0]
 num_folds = 5
 my_cross_validation_sets = []
-pretrained_enc_type = 'fasttext'
+pretrained_enc_type = 'fasttext' # 'fasttext' or 'glove'
 freeze_pretrained_embeddings = True
 regressor_type = 'softreg'    #'mmlpreg'
-enc_type = 'embed-and-pool' # 'lstm'
+enc_type = 'embed-and-pool'    #'lstm'
 device='cpu' #'gpu'
 pretrained_emb_model = utils.load_pretrained_embeddings(pretrained_enc_type)
 
@@ -42,7 +42,7 @@ if enc_type == 'lstm':
         vocab=pretrained_emb_model.vocab
 )
 elif enc_type == 'embed-and-pool':
-    enc_kwargs={'freeze_embeddings': freeze_pretrained_embeddings}
+    enc_kwargs={'freeze_embeddings': freeze_pretrained_embeddings, 'average_pool': pooling_type == 'mean'}
     tokenizer = clslib.BasicTokenizer(
         lowercase=True, 
         remove_punct=False, 
@@ -51,7 +51,10 @@ elif enc_type == 'embed-and-pool':
         vocab=pretrained_emb_model.vocab
     )
 
-save_to="results/" + regressor_type + "-" + enc_type + "-" + pretrained_enc_type
+save_to = f"results/{regressor_type}-{enc_type}-{pretrained_enc_type}"
+
+if enc_type == 'embed-and-pool':
+    save_to += f"-{pooling_type}"
 if not freeze_pretrained_embeddings:
     save_to += "-unfrozen"
 
