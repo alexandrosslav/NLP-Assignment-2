@@ -32,7 +32,6 @@ parser.add_argument("--batch-size", type=int, default=64)
 parser.add_argument("--lr", type=float, default=1e-3)
 parser.add_argument("--weight-decay", type=float, default=1e-4)
 parser.add_argument("--seed", type=int, default=0)
-parser.add_argument("--folds", type=int, nargs="+", default=list(range(5)))
 parser.add_argument("--device", choices=["cpu", "cuda"], default="cuda")
 
 args = parser.parse_args()
@@ -94,11 +93,6 @@ elif enc_type == 'embed-and-pool':
 if not args.run_id.replace("-", "").replace("_", "").isalnum():
     parser.error("--run-id must contain only letters, numbers, - or _")
 
-if not args.folds or len(set(args.folds)) != len(args.folds):
-    parser.error("--folds must contain distinct fold indices")
-
-if any(fold not in range(num_folds) for fold in args.folds):
-    parser.error(f"--folds must be between 0 and {num_folds - 1}")
 
 save_to = Path("results") / args.run_id
 
