@@ -8,15 +8,15 @@ import experiment
 
 #------------------------ hyperparameters and dataset #------------------------
 
-hidden_size1 = 50   # ignored if regressor_type is 'mmlp-regressor'
-hidden_size2 = 50   # ignored if regressor_type is 'mmlp-regressor'
-dropout = 0.1       # ignored if regressor_type is 'mmlp-regressor'
-lstm_hidden_size = 256
-lstm_word_dropout = 0.1
+hidden_size1 = 128   # ignored if regressor_type is 'mmlp-regressor'
+hidden_size2 = 128   # ignored if regressor_type is 'mmlp-regressor'
+dropout = 0.1        # ignored if regressor_type is 'mmlp-regressor'
+lstm_hidden_size = 256  # 128, 512
+lstm_word_dropout = 0.1 # 0.2, 0.3
 learning_rate = 1e-3
 weight_decay = 1e-4
 batch_size = 64
-num_epochs = 10
+num_epochs = 50
 my_seeds = [0]
 num_folds = 5
 my_cross_validation_sets = []
@@ -47,7 +47,7 @@ elif enc_type == 'embed-and-pool':
     tokenizer = clslib.BasicTokenizer(
         lowercase=True, 
         remove_punct=False, 
-        remove_stopwords=False, 
+        remove_stopwords=False,
         language='english',
         vocab=pretrained_emb_model.vocab
     )
