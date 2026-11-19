@@ -16,6 +16,7 @@ batch_size = 64
 my_seeds = [0]
 num_folds = 5
 pretrained_enc_type = 'fasttext'
+regressor_type = 'mmlpreg'
 enc_type = 'embed-and-pool'    #'lstm'
 device='cpu' #'gpu'
 pretrained_emb_model = utils.load_pretrained_embeddings(pretrained_enc_type)
@@ -37,7 +38,7 @@ elif enc_type == 'embed-and-pool':
         vocab=pretrained_emb_model.vocab
     )
 my_classifiers = OrderedDict()
-save_to="results/softreg-" + enc_type + "-" + pretrained_enc_type
+save_to="results/" + regressor_type + "-" + enc_type + "-" + pretrained_enc_type
 
 dataset = load_dataset("stanfordnlp/sst2")
 test_dataset = dataset["validation"]
@@ -49,7 +50,7 @@ print(f"Loaded test dataset with size: {len(test_dataset)}\n")
 table = []
 systems = dict()
 items = dict()
-model_family = f"softreg-{enc_type}-{pretrained_enc_type}"
+model_family = f"{regressor_type}-{enc_type}-{pretrained_enc_type}"
 
 for run, seed in enumerate(my_seeds):
     run_texts = [text for text in test_dataset["sentence"]]
@@ -57,9 +58,9 @@ for run, seed in enumerate(my_seeds):
 
     for fold in range(num_folds):            
         # load our model
-        trained_nn = experiment.load(f"results/{model_family}/seed-{seed}/fold-{fold}/model", pretrained_emb_model)
+        trained_nn = experiment.load(f"results/{model_family}/seed-{seed}/fold-{fold}/model", pretrained_emb_model, regressor_type=regressor_type)
         # test it on the test set
-        output = experiment.predict_logit(
+        output = experiment.predict_logits(
             trained_nn, 
             tokenizer, 
             run_texts, 
