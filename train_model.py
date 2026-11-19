@@ -50,7 +50,10 @@ elif enc_type == 'embed-and-pool':
         vocab=pretrained_emb_model.vocab
     )
 my_classifiers = OrderedDict()
-save_to="results/" + regressor_type + "-" + enc_type + "-" + pretrained_enc_type
+save_to = f"results/{regressor_type}-{enc_type}-{pretrained_enc_type}"
+
+if enc_type == 'embed-and-pool':
+    save_to += f"-{pooling_type}"
 
 dataset = load_dataset("stanfordnlp/sst2")
 train_dataset = dataset["train"]
