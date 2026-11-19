@@ -24,6 +24,7 @@ pretrained_enc_type = 'fasttext' # 'fasttext' or 'glove'
 freeze_pretrained_embeddings = True
 regressor_type = 'softreg'    #'mmlpreg'
 enc_type = 'embed-and-pool'    #'lstm'
+average_pool = True  # otherwise uses sum
 device='cpu' #'gpu'
 pretrained_emb_model = utils.load_pretrained_embeddings(pretrained_enc_type)
 
@@ -42,7 +43,7 @@ if enc_type == 'lstm':
         vocab=pretrained_emb_model.vocab
 )
 elif enc_type == 'embed-and-pool':
-    enc_kwargs={'freeze_embeddings': freeze_pretrained_embeddings, 'average_pool': pooling_type == 'mean'}
+    enc_kwargs={'freeze_embeddings': freeze_pretrained_embeddings, 'average_pool': average_pool}
     tokenizer = clslib.BasicTokenizer(
         lowercase=True, 
         remove_punct=False, 
@@ -53,9 +54,14 @@ elif enc_type == 'embed-and-pool':
 
 save_to = f"results/{regressor_type}-{enc_type}-{pretrained_enc_type}"
 
-if enc_type == 'embed-and-pool':
-    save_to += f"-{pooling_type}"
-if not freeze_pretrained_embeddings:
+if average_pool:
+    save_to += "-mean"
+else:
+    save_to += "-sum"
+
+if freeze_pretrained_embeddings:
+    save_to += "-frozen"
+else:
     save_to += "-unfrozen"
 
 my_classifiers = OrderedDict()
