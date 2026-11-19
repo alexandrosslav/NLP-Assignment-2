@@ -4,28 +4,65 @@ from collections import OrderedDict
 import utils
 import clslib
 import experiment
+import argparse
+import json
+from pathlib import Path
 
+# -------------------- command-line arguments --------------------
 
-#------------------------ hyperparameters and dataset #------------------------
+parser = argparse.ArgumentParser()
 
-hidden_size1 = 128   # ignored if regressor_type is 'mmlp-regressor'
-hidden_size2 = 128   # ignored if regressor_type is 'mmlp-regressor'
-dropout = 0.1        # ignored if regressor_type is 'mmlp-regressor'
-lstm_hidden_size = 256  # 128, 512
-lstm_word_dropout = 0.1 # 0.2, 0.3
-learning_rate = 1e-3
-weight_decay = 1e-4
-batch_size = 64
-num_epochs = 50
-my_seeds = [0]
+# Experiment identification
+parser.add_argument("--run-id", type=str, required=True)
+
+# Model configuration
+parser.add_argument("--embedding", choices=["fasttext", "glove"],
+                    default="fasttext")
+parser.add_argument("--encoder", choices=["embed-and-pool", "lstm"],
+                    default="embed-and-pool")
+parser.add_argument("--pooling", choices=["mean", "sum"], default="mean")
+parser.add_argument("--hidden-size", type=int, default=256)
+parser.add_argument("--word-dropout", type=float, default=0.1)
+parser.add_argument("--trainable-embeddings", action="store_true")
+parser.add_argument("--regressor", choices=["softreg", "mmlpreg"], default="softreg")
+
+# Training configuration
+parser.add_argument("--epochs", type=int, default=50)
+parser.add_argument("--batch-size", type=int, default=64)
+parser.add_argument("--lr", type=float, default=1e-3)
+parser.add_argument("--weight-decay", type=float, default=1e-4)
+parser.add_argument("--seed", type=int, default=0)
+parser.add_argument("--folds", type=int, nargs="+", default=list(range(5)))
+parser.add_argument("--device", choices=["cpu", "cuda"], default="cuda")
+
+args = parser.parse_args()
+
+# -------------------- map arguments to existing variables --------------------
+
+hidden_size1 = 128 # ignored if regressor_type is 'mmlp-regressor'
+hidden_size2 = 128 # ignored if regressor_type is 'mmlp-regressor'
+dropout = 0.1      # ignored if regressor_type is 'mmlp-regressor'
+
+lstm_hidden_size = args.hidden_size # 256, 128, 512
+lstm_word_dropout = args.word_dropout # 0.1, 0.2, 0.3
+
+learning_rate = args.lr
+weight_decay = args.weight_decay
+batch_size = args.batch_size
+num_epochs = args.epochs
+
+my_seeds = [args.seed]
 num_folds = 5
 my_cross_validation_sets = []
-pretrained_enc_type = 'fasttext' # 'fasttext' or 'glove'
-freeze_pretrained_embeddings = True
-regressor_type = 'softreg'    #'mmlpreg'
-enc_type = 'embed-and-pool'    #'lstm'
-average_pool = True  # otherwise uses sum
-device='cpu' #'gpu'
+
+pretrained_enc_type = args.embedding # 'fasttext' or 'glove'
+freeze_pretrained_embeddings = not args.trainable_embeddings
+
+regressor_type = args.regressor # 'softreg' or 'mmlpreg'
+enc_type = args.encoder # 'embed-and-pool' or 'lstm'
+average_pool = args.pooling == "mean" # otherwise uses sum
+device = args.device
+
 pretrained_emb_model = utils.load_pretrained_embeddings(pretrained_enc_type)
 
 if regressor_type == 'softreg':
@@ -52,17 +89,34 @@ elif enc_type == 'embed-and-pool':
         vocab=pretrained_emb_model.vocab
     )
 
-save_to = f"results/{regressor_type}-{enc_type}-{pretrained_enc_type}"
+# -------------------- experiment output --------------------
 
-if average_pool:
-    save_to += "-mean"
-else:
-    save_to += "-sum"
+if not args.run_id.replace("-", "").replace("_", "").isalnum():
+    parser.error("--run-id must contain only letters, numbers, - or _")
 
-if freeze_pretrained_embeddings:
-    save_to += "-frozen"
-else:
-    save_to += "-unfrozen"
+if not args.folds or len(set(args.folds)) != len(args.folds):
+    parser.error("--folds must contain distinct fold indices")
+
+if any(fold not in range(num_folds) for fold in args.folds):
+    parser.error(f"--folds must be between 0 and {num_folds - 1}")
+
+save_to = Path("results") / args.run_id
+
+if save_to.exists():
+    parser.error(f"Experiment directory already exists: {save_to}")
+
+save_to.mkdir(parents=True)
+
+config = vars(args).copy()
+config["classifier_hidden_sizes"] = [hidden_size1, hidden_size2]
+config["classifier_dropout"] = dropout
+config["num_folds"] = num_folds
+
+with open(save_to / "config.json", "w", encoding="utf-8") as f:
+    json.dump(config, f, indent=2)
+
+print(f"Experiment: {args.run_id}")
+print(f"Results directory: {save_to}")
 
 my_classifiers = OrderedDict()
 dataset = load_dataset("stanfordnlp/sst2")
