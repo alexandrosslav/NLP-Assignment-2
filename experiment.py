@@ -141,14 +141,13 @@ def train(
     enc_type: str,
     save_to="temp",    
     enc_kwargs={'freeze_embeddings': True},
+    regressor_type='softmax-regressor',
     regressor_kwargs={'hidden_size1': 50, 'hidden_size2': 50, 'dropout': 0.},    
     opt_kwargs={'learning_rate': 1e-3, 'weight_decay': 1e-4, 'batch_size': 64, 'num_epochs': 20},    
     device='cpu'
 ):
     """Receives a training set and a validation set and returns a trained neural network model"""
 
-    # 6
-    
     time_start = time.time()
 
     print("Tokenizing texts...")
@@ -209,10 +208,18 @@ def train(
     else:
         raise ValueError(f"I do not know this encoder type: {enc_type}")    
 
-    model = clslib.SoftmaxRegressor(        
-        encoder=encoder,
-        **regressor_kwargs
-    ).to(device)
+    if regressor_type == 'softreg':
+        model = clslib.SoftmaxRegressor(        
+            encoder=encoder,
+            **regressor_kwargs
+        ).to(device)
+    elif regressor_type == 'mmlpreg':
+        model = clslib.MMLPRegressor(
+            encoder=encoder,
+            **regressor_kwargs
+        ).to(device)
+    else:
+        raise ValueError(f"I do not know this regressor type: {regressor_type}")
     
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=opt_kwargs['learning_rate'], weight_decay=opt_kwargs['weight_decay'])
@@ -248,7 +255,7 @@ def train(
     return metrics, best_epoch
 
     
-def load(path, emb_model: clslib.PretrainedEmbeddings, device="cpu"):
+def load(path, emb_model, regressor_type="softreg", device="cpu"):
     """
     Reconstruct the model architecture (using {path}.json) and load trained weights (using {path}.pt) and return it.
     """
@@ -275,10 +282,16 @@ def load(path, emb_model: clslib.PretrainedEmbeddings, device="cpu"):
     else:
         raise ValueError(f"I do not know this encoder type: {args['enc_type']}")    
 
-    model = clslib.SoftmaxRegressor(        
-        encoder=encoder,
-        **args['regressor_kwargs']
-    )
+    if regressor_type == 'softreg':
+        model = clslib.SoftmaxRegressor(        
+            encoder=encoder,
+            **args['regressor_kwargs']
+        )
+    elif regressor_type == 'mmlpreg':
+        model = clslib.MMLPRegressor(
+            encoder=encoder,
+            **args['regressor_kwargs']
+        )
     
     model.load_state_dict(state_dict)
     model = model.to(device)
@@ -290,6 +303,7 @@ def cross_validation(
     emb_model: clslib.PretrainedEmbeddings, 
     enc_type, 
     enc_kwargs,
+    regressor_type,
     regressor_kwargs, 
     opt_kwargs, 
     device='cpu',
@@ -325,6 +339,7 @@ def cross_validation(
             emb_model,
             enc_type=enc_type,
             enc_kwargs=enc_kwargs,
+            regressor_type=regressor_type,
             regressor_kwargs=regressor_kwargs,
             opt_kwargs=opt_kwargs,
             device=device,
@@ -336,7 +351,7 @@ def cross_validation(
 
     return {'models': models, 'predictions': predictions, 'accuracies': accuracies}    
 
-def predict_logit(   
+def predict_logits(   
     model: clslib.SoftmaxRegressor,    
     tokenizer: clslib.Tokenizer,        
     texts,     

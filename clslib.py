@@ -422,4 +422,35 @@ class SoftmaxRegressor(nn.Module):
         # [..., enc_dim]
         h = self.encoder(x)
         # [...,num_classes]
-        return self.output_layer(h)          
+        return self.output_layer(h)
+
+class MMLPRegressor(nn.Module):
+    """
+    This is a multi-layer perceptron regressor, 
+     it works with encoded text h(x) as input.
+    The map from h(x) to outputs uses an MLP.
+    """
+    def __init__(self, hidden_size1, hidden_size2, encoder: nn.Module, dropout=0.):
+        """
+        hidden_size1: size of first hidden layer (in the output transformation)
+        hidden_size2: size of second hidden layer
+        encoder: an nn.Module that maps each x to a single vector of size encoder.enc_dim
+        """
+        super().__init__()
+        self.encoder = encoder      
+        self.dropout_rate = dropout
+        self.output_layer = nn.Sequential(
+            nn.Linear(encoder.enc_dim, hidden_size1),
+            nn.ReLU(),
+            nn.Dropout(p=dropout),
+            nn.Linear(hidden_size1, hidden_size2),
+            nn.ReLU(),
+            nn.Dropout(p=dropout),
+            nn.Linear(hidden_size2, 1),
+        )
+
+    def forward(self, x):  
+        # [..., enc_dim]
+        h = self.encoder(x)
+        # [...,num_classes]
+        return self.output_layer(h)        
