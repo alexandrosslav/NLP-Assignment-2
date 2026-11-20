@@ -1,0 +1,22 @@
+{
+  "run_id": "lstm_h128_wd03_decay1e-3",
+  "embedding": "fasttext",
+  "encoder": "lstm",
+  "pooling": "mean",
+  "hidden_size": 128,
+  "word_dropout": 0.3,
+  "trainable_embeddings": false,
+  "regressor": "softreg",
+  "epochs": 50,
+  "batch_size": 64,
+  "lr": 0.001,
+  "weight_decay": 0.001,
+  "seed": 0,
+  "device": "cuda",
+  "classifier_hidden_sizes": [
+    128,
+    128
+  ],
+  "classifier_dropout": 0.1,
+  "num_folds": 5
+}
