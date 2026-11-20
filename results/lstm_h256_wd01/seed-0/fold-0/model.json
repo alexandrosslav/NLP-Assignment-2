@@ -1,0 +1,14 @@
+{
+  "enc_kwargs": {
+    "freeze_embeddings": true,
+    "hidden_size": 256,
+    "word_dropout": 0.1,
+    "padding_idx": 0
+  },
+  "regressor_kwargs": {
+    "hidden_size1": 128,
+    "hidden_size2": 128,
+    "dropout": 0.1
+  },
+  "enc_type": "lstm"
+}

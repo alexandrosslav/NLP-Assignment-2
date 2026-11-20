@@ -1,0 +1,22 @@
+{
+  "run_id": "lstm_h512_wd01_finetuned",
+  "embedding": "fasttext",
+  "encoder": "lstm",
+  "pooling": "mean",
+  "hidden_size": 512,
+  "word_dropout": 0.1,
+  "trainable_embeddings": true,
+  "regressor": "softreg",
+  "epochs": 50,
+  "batch_size": 64,
+  "lr": 0.001,
+  "weight_decay": 0.0001,
+  "seed": 0,
+  "device": "cuda",
+  "classifier_hidden_sizes": [
+    128,
+    128
+  ],
+  "classifier_dropout": 0.1,
+  "num_folds": 5
+}
