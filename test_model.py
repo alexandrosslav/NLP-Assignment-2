@@ -9,17 +9,26 @@ import numpy as np
 import utils
 import clslib
 import experiment
+import json
 
 #------------------------ hyperparameters and dataset #------------------------
 
-batch_size = 64
-my_seeds = [0]
-num_folds = 5
-pretrained_enc_type = 'fasttext'
-freeze_pretrained_embeddings = True
-regressor_type = 'mmlpreg'
-enc_type = 'embed-and-pool'    #'lstm'
-device='cpu' #'gpu'
+model_family = "YOUR_RUN_ID"
+
+with open(f"results/{model_family}/config.json", "r") as f:
+    config = json.load(f)
+
+batch_size = config["batch_size"]
+my_seeds = [config["seed"]]
+num_folds = config["num_folds"]
+
+pretrained_enc_type = config["embedding"]
+freeze_pretrained_embeddings = not config["trainable_embeddings"]
+regressor_type = config["regressor"]
+enc_type = config["encoder"]
+
+device = 'cpu'
+
 pretrained_emb_model = utils.load_pretrained_embeddings(pretrained_enc_type)
 
 if enc_type == 'lstm':
@@ -50,9 +59,6 @@ print(f"Loaded test dataset with size: {len(test_dataset)}\n")
 table = []
 systems = dict()
 items = dict()
-model_family = f"{regressor_type}-{enc_type}-{pretrained_enc_type}"
-if not freeze_pretrained_embeddings:
-    model_family += "-unfrozen"
 
 for run, seed in enumerate(my_seeds):
     run_texts = [text for text in test_dataset["sentence"]]
