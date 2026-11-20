@@ -16,8 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--run-id", type=str, required=True)
 
 # Model configuration
-parser.add_argument("--embedding", choices=["fasttext", "glove"],
-                    default="fasttext")
+parser.add_argument("--embedding", choices=["fasttext", "glove", "glove300"], default="fasttext")
 parser.add_argument("--encoder", choices=["embed-and-pool", "lstm"],
                     default="embed-and-pool")
 parser.add_argument("--pooling", choices=["mean", "sum"], default="mean")

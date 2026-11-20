@@ -47,6 +47,64 @@ def load_pretrained_embeddings(pretrained_enc_type):
     """
     cache_pkl = f"{pretrained_enc_type}_pretrained_emb.pkl"
 
+
+    if pretrained_enc_type == "glove300":
+        import numpy as np
+        from huggingface_hub import hf_hub_download
+
+        repo = "jsanzolac/glove_2024_wikigiga_300d"
+
+        vocab_path = hf_hub_download(
+            repo_id=repo, filename="glove_vocab.txt"
+        )
+        vectors_path = hf_hub_download(
+            repo_id=repo, filename="glove_vectors.bin"
+        )
+
+        with open(vocab_path, encoding="utf-8") as f:
+            source_words = [line.rstrip("\r\n").lower() for line in f]
+
+        source_vectors = np.memmap(
+            vectors_path,
+            dtype=np.float32,
+            mode="r",
+            shape=(len(source_words), 300)
+        )
+
+        # Match the original loader: lowercase and skip duplicates.
+        seen = {"<pad>", "<unk>"}
+        words, indices = [], []
+        for i, word in enumerate(source_words):
+            if word not in seen:
+                seen.add(word)
+                words.append(word)
+                indices.append(i)
+
+        vectors = np.empty((len(words) + 2, 300), dtype=np.float32)
+        vectors[0] = 0.0  # Padding vector
+        if len(indices) == len(source_words):
+            vectors[2:] = source_vectors
+        else:
+            vectors[2:] = source_vectors[indices]
+        vectors[1] = vectors[2:].mean(axis=0)  # Unknown vector
+
+        model = clslib.PretrainedEmbeddings.__new__(
+            clslib.PretrainedEmbeddings
+        )
+        model.vocab = clslib.Vocabulary(
+            ["<pad>", "<unk>"] + words,
+            default="<unk>",
+            frozen=True
+        )
+        model.vectors = vectors
+        model.num_dims = 300
+        model.pad_token = "<pad>"
+        model.unk_token = "<unk>"
+
+        print(f"Loaded GloVe 300D: {len(model.vocab):,} tokens")
+        return model
+
+
     if pretrained_enc_type in ('fasttext', 'glove'):
         if os.path.exists(cache_pkl):
             with open(cache_pkl, "rb") as f:
