@@ -267,11 +267,15 @@ def load(path, emb_model, regressor_type="softreg", device="cpu"):
     with open(f"{path}.json", "r", encoding="utf-8") as f:
         args = json.load(f)
     
-    with open(f"{path}.pt", "rb") as f:
-        state_dict = torch.load(f)
-        
     if isinstance(device, str):
         device = torch.device(device)
+
+    with open(f"{path}.pt", "rb") as f:
+        state_dict = torch.load(
+            f,
+            map_location=device,
+            weights_only=True
+        )
         
     if args['enc_type'] == 'embed-and-pool':
         encoder = clslib.EmbedAndPoolEncoder(
