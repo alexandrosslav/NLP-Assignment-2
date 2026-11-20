@@ -2,6 +2,7 @@
 from datasets import load_dataset
 from collections import OrderedDict
 from sklearn.metrics import classification_report
+from pathlib import Path
 import textstat  
 import pandas as pd
 import numpy as np
@@ -10,10 +11,15 @@ import utils
 import clslib
 import experiment
 import json
+import argparse
 
 #------------------------ hyperparameters and dataset #------------------------
 
-model_family = "YOUR_RUN_ID"
+parser = argparse.ArgumentParser()
+parser.add_argument("--run-id", type=str, required=True)
+args = parser.parse_args()
+
+model_family = args.run_id
 
 with open(f"results/{model_family}/config.json", "r") as f:
     config = json.load(f)
@@ -59,6 +65,7 @@ print(f"Loaded test dataset with size: {len(test_dataset)}\n")
 table = []
 systems = dict()
 items = dict()
+metrics = []
 
 for run, seed in enumerate(my_seeds):
     run_texts = [text for text in test_dataset["sentence"]]
@@ -78,6 +85,17 @@ for run, seed in enumerate(my_seeds):
         predictions = (output >= 0).squeeze(1) # get the predicted class
         print(f"Run {run}, fold {fold}:\n{classification_report(run_labels, predictions)}\n")
 
+        report = classification_report(run_labels, predictions, output_dict=True)
+
+        metrics.append({
+            "run": run,
+            "fold": fold,
+            "accuracy": report["accuracy"],
+            "precision": report["macro avg"]["precision"],
+            "recall": report["macro avg"]["recall"],
+            "f1": report["macro avg"]["f1-score"]
+        })
+
         # then featurize the texts and compute the correctness flags
         for i in range(len(predictions)):                
                             
@@ -93,6 +111,7 @@ for run, seed in enumerate(my_seeds):
             table.append([
                 model_family, 
                 item_id, 
+                x,
                 run, 
                 fold, 
                 y, 
@@ -105,5 +124,14 @@ for run, seed in enumerate(my_seeds):
                 textstat.flesch_kincaid_grade(x)
             ])
 
-df = pd.DataFrame(table, columns=['system', 'item_id', 'run', 'fold',  'label', 'pred', 'correct', 'lexicon_count', 'flesch_reading_ease', 'reading_time', 'flesch_kincaid_grade'])
+df = pd.DataFrame(table, columns=['system', 'item_id', 'sentence', 'run', 'fold',  'label', 'pred', 'correct', 'lexicon_count', 'flesch_reading_ease', 'reading_time', 'flesch_kincaid_grade'])
 print(df)
+
+results_dir = Path("results") / model_family
+
+df.to_csv(results_dir / "heldout_predictions.csv", index=False)
+
+metrics_df = pd.DataFrame(metrics)
+metrics_df.to_csv(results_dir / "heldout_metrics.csv", index=False)
+
+print(f"Held-out results saved to {results_dir}")
