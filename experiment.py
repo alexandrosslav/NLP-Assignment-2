@@ -249,6 +249,9 @@ def train(
             best_val_loss = val_metrics["loss"]
             torch.save(model.state_dict(), f"{save_to}.pt")
             best_epoch = epoch
+
+    # save also the last model
+    torch.save(model.state_dict(), f"{save_to}_last.pt")
     
     time_training = time.time()
     print(f"Training done! Time taken: {time_training - time_dataloader:.3f} seconds")
